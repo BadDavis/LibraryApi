@@ -13,6 +13,8 @@ using Library.API.Entities;
 using Microsoft.EntityFrameworkCore;
 using Library.API.Helpers;
 using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.AspNetCore.Diagnostics;
+using NLog.Extensions.Logging;
 
 namespace Library.API
 {
@@ -61,6 +63,10 @@ namespace Library.API
         {
             loggerFactory.AddConsole();
 
+            loggerFactory.AddDebug(LogLevel.Information );
+
+            loggerFactory.AddNLog();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -71,6 +77,15 @@ namespace Library.API
                 {
                     appBuilder.Run(async context =>
                     {
+                        var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
+                        if (exceptionHandlerFeature != null)
+                        {
+                            var logger = loggerFactory.CreateLogger("Global exception logger");
+                            logger.LogError(500,
+                                exceptionHandlerFeature.Error,
+                                exceptionHandlerFeature.Error.Message);
+                        }
+
                         context.Response.StatusCode = 500;
                         await context.Response.WriteAsync("An unexpected fault happened, Try again.");
                     });
@@ -80,7 +95,7 @@ namespace Library.API
             AutoMapper.Mapper.Initialize(cfg =>
             {
                 cfg.CreateMap<Entities.Author, Models.AuthorsDto>()
-                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => $"{src.FirstName}{src.LastName}"))
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => $"{src.FirstName} {src.LastName}"))
                 .ForMember(dest => dest.Age, opt => opt.MapFrom(src => src.DateOfBirth.GetCurrentAge()));
 
                 cfg.CreateMap<Entities.Book, Models.BookDto>();
@@ -88,6 +103,10 @@ namespace Library.API
                 cfg.CreateMap<Models.AuthorForCreationDto, Entities.Author>();
 
                 cfg.CreateMap<Models.BooksForCreationDto, Entities.Book>();
+
+                cfg.CreateMap<Models.BookForUpdateDto, Entities.Book>();
+
+                cfg.CreateMap<Entities.Book, Models.BookForUpdateDto>();
             });
 
             libraryContext.EnsureSeedDataForContext();
