@@ -26,7 +26,7 @@ namespace Library.API.Controllers
             _libraryRepository = libraryRepository;
         }
 
-        [HttpGet()]
+        [HttpGet(Name = "GetBooksForAuthor")]
         public IActionResult GetBooksForAuthor(Guid authorId)
         {
             if (!_libraryRepository.AuthorExists(authorId))
@@ -61,7 +61,7 @@ namespace Library.API.Controllers
             return Ok(bookForAuthorFromRepo);
         }
 
-        [HttpPost()]
+        [HttpPost(Name = "CreateBookForAuthor")]
         public IActionResult CreateBookForAuthor(Guid authorId,
             [FromBody] BooksForCreationDto book)
         {
