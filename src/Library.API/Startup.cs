@@ -15,6 +15,10 @@ using Library.API.Helpers;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.Diagnostics;
 using NLog.Extensions.Logging;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
+using Newtonsoft.Json.Serialization;
 
 namespace Library.API
 {
@@ -37,15 +41,19 @@ namespace Library.API
         // For more information on how to configure your application, visit http://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc(setupAction => {
+            services.AddMvc(setupAction =>
+            {
                 setupAction.ReturnHttpNotAcceptable = true; //not acceptable jesli nie wspierany typ danych
 
                 setupAction.OutputFormatters.Add(new XmlDataContractSerializerOutputFormatter());
 
                 setupAction.InputFormatters.Add(new XmlDataContractSerializerInputFormatter());
 
+            }).AddJsonOptions(options =>
+            {
+                options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+            });            ;
 
-            });
 
             // register the DbContext on the container, getting the connection string from
             // appSettings (note: use this during development; in a production environment,
@@ -55,8 +63,20 @@ namespace Library.API
 
             // register the repository
             services.AddScoped<ILibraryRepository, LibraryRepository>();
-        }
 
+            services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
+
+            services.AddScoped<IUrlHelper, UrlHelper>(implementationFactory =>
+                {
+                    var actionContext = implementationFactory.GetService<IActionContextAccessor>().ActionContext;
+                    return new UrlHelper(actionContext);
+                });
+
+            services.AddTransient<IPropertyMappingService, PropertyMappingService>();
+
+            services.AddTransient<ITypeHelperService, TypeHelperService>();
+
+        }
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, 
             ILoggerFactory loggerFactory, LibraryContext libraryContext)
@@ -107,6 +127,8 @@ namespace Library.API
                 cfg.CreateMap<Models.BookForUpdateDto, Entities.Book>();
 
                 cfg.CreateMap<Entities.Book, Models.BookForUpdateDto>();
+
+
             });
 
             libraryContext.EnsureSeedDataForContext();
