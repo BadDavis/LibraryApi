@@ -47,7 +47,33 @@ namespace Library.API
 
                 setupAction.OutputFormatters.Add(new XmlDataContractSerializerOutputFormatter());
 
-                setupAction.InputFormatters.Add(new XmlDataContractSerializerInputFormatter());
+                //setupAction.InputFormatters.Add(new XmlDataContractSerializerInputFormatter());
+
+                var xmlDataContractSerializerInputFormatter = new XmlDataContractSerializerInputFormatter();
+                xmlDataContractSerializerInputFormatter.SupportedMediaTypes.
+                Add("application/vnd.marvin.authorwithdateofdeath.full+xml");
+                setupAction.InputFormatters.Add(xmlDataContractSerializerInputFormatter);
+
+                var jsonInputFormatter = setupAction.InputFormatters
+                .OfType<JsonInputFormatter>().FirstOrDefault();
+
+                if (jsonInputFormatter != null)
+                {
+                    jsonInputFormatter.SupportedMediaTypes.
+                    Add("application/vnd.marvin.author.full+json");
+
+                    jsonInputFormatter.SupportedMediaTypes.
+                    Add("application/vnd.marvin.authorwithdateofdeath.full+json");
+                }
+
+                var jsonOutputFormatter = setupAction.OutputFormatters.
+                OfType<JsonOutputFormatter>().FirstOrDefault();
+
+                if (jsonOutputFormatter != null)
+                {
+                    jsonOutputFormatter.SupportedMediaTypes.
+                    Add("application/vnd.marvin.hateoas+json");
+                }
 
             }).AddJsonOptions(options =>
             {
@@ -116,7 +142,7 @@ namespace Library.API
             {
                 cfg.CreateMap<Entities.Author, Models.AuthorsDto>()
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => $"{src.FirstName} {src.LastName}"))
-                .ForMember(dest => dest.Age, opt => opt.MapFrom(src => src.DateOfBirth.GetCurrentAge()));
+                .ForMember(dest => dest.Age, opt => opt.MapFrom(src => src.DateOfBirth.GetCurrentAge(src.DateOfDeath)));
 
                 cfg.CreateMap<Entities.Book, Models.BookDto>();
 
@@ -127,6 +153,8 @@ namespace Library.API
                 cfg.CreateMap<Models.BookForUpdateDto, Entities.Book>();
 
                 cfg.CreateMap<Entities.Book, Models.BookForUpdateDto>();
+
+                cfg.CreateMap<Models.AuthorForCreationWithDateOfDeathDto, Entities.Author>();
 
 
             });
